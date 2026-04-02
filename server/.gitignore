@@ -1,0 +1,45 @@
+# Ignore Python virtual environment
+venv/
+server/venv/
+env/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Deepfake detection project
+frames/
+deepfake_model.h5
+training_history.png
+dataset/
+*.log
+
+# Ignore logs and temporary files
+*.log
+.DS_Store
+
+# Ignore build and backup files
+build/
+dist/
+*.bak
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Database
+*.db
+
+# ML models
+*.pth
+*.h5
+*.keras
+
+# Uploads / generated files
+server/uploads/
+
+# Temp
+temp_backup/
