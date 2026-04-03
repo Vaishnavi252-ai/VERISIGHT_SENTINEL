@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import GlobalHeatMap from '../components/Map/GlobalHeatMap';
@@ -8,7 +9,9 @@ import ConfidenceDonut from '../components/Charts/ConfidenceDonut';
 import DetectionFilters from '../components/Filters/DetectionFilters';
 
 function GlobalIntel() {
-  const [filters, setFilters] = useState({ media: '', country: '', window: '7d', min_conf: 0.0, max_conf: 1.0, verification_status: '' });
+  const routeLocation = useLocation();
+  const [selectedLocation, setSelectedLocation] = useState(routeLocation.state?.selectedLocation || null);
+  const [filters, setFilters] = useState({ media: '', country: selectedLocation?.country || '', window: 'all', min_conf: 0.0, max_conf: 1.0, verification_status: '' });
   const [topCountries, setTopCountries] = useState([]);
   const [trends, setTrends] = useState([]);
   const [confDist, setConfDist] = useState({ bins: [] });
@@ -69,9 +72,27 @@ function GlobalIntel() {
           <div className="lg:col-span-3 space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold text-cyan-400">Global Intelligence</h1>
-              <span className="text-gray-400 text-sm">World / Country toggle via filter</span>
+              <div className="flex items-center gap-3">
+                <span className="text-gray-400 text-sm">World / Country toggle via filter</span>
+                {selectedLocation && (
+                  <button 
+                    onClick={() => {
+                      setSelectedLocation(null);
+                      setFilters(prev => ({ ...prev, country: '' }));
+                    }}
+                    className="px-3 py-1 bg-purple-600/30 border border-purple-500/50 rounded text-sm text-purple-300 hover:bg-purple-600/50"
+                  >
+                    ✕ Clear Location Filter
+                  </button>
+                )}
+              </div>
             </div>
-            <GlobalHeatMap />
+            {selectedLocation && (
+              <div className="bg-purple-900/20 border border-purple-500/50 rounded-lg p-3 text-purple-300 text-sm">
+                📍 Viewing detections from: <span className="font-semibold">{selectedLocation.city ? `${selectedLocation.city}, ` : ''}{selectedLocation.country}</span> (showing multiple IPs from this location)
+              </div>
+            )}
+            <GlobalHeatMap filters={filters} selectedLocation={selectedLocation} />
             <CountryBarChart data={topCountries} />
             <TrendLineChart data={trends} />
             <ConfidenceDonut data={confDist?.bins || []} />

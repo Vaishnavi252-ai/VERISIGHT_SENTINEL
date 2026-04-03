@@ -15,7 +15,7 @@ function GlobalHeatLive() {
   const [trends, setTrends] = useState([]);
   const [confDist, setConfDist] = useState({ bins: [] });
   const [topPlatforms, setTopPlatforms] = useState([]);
-  const [filters, setFilters] = useState({ media: '', country: '', window: '24h', min_conf: 0.0, max_conf: 1.0, verification_status: '' });
+  const [filters, setFilters] = useState({ media: '', country: '', window: 'all', min_conf: 0.0, max_conf: 1.0, verification_status: '' });
   const [chatInput, setChatInput] = useState('Explain spikes in last 7 days');
   const [chatLogs, setChatLogs] = useState([]);
 

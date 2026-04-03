@@ -10,13 +10,19 @@ analytics_bp = Blueprint('analytics', __name__)
 
 def _parse_time_window():
     now = datetime.utcnow()
-    window = request.args.get('window', '24h')
+    window = request.args.get('window', 'all')  # Default to all-time
     if window == '7d':
         start = now - timedelta(days=7)
     elif window == '30d':
         start = now - timedelta(days=30)
-    else:
+    elif window == '24h':
         start = now - timedelta(hours=24)
+    elif window == 'all' or window == 'lifetime':
+        # Return a date far in the past to get all data
+        start = now - timedelta(days=36500)  # ~100 years in the past
+    else:
+        # Fallback to all-time if unrecognized
+        start = now - timedelta(days=36500)
     return start, now
 
 

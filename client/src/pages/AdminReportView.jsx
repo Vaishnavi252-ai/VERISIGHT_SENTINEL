@@ -71,44 +71,6 @@ export default function AdminReportView() {
             >
               ← Back
             </button>
-
-            <a
-              className="rounded-xl border border-white/10 bg-gradient-to-r from-purple-500/30 to-cyan-500/20 px-4 py-2 text-sm hover:bg-white/10"
-              href={`/api/admin/reports/${report.id}/download`}
-            >
-              ⬇ Download PDF
-            </a>
-
-            <button
-              onClick={async () => {
-                let email = report.reporter_email;
-                if (!email || email.trim() === '') {
-                  email = prompt('Enter reporter email to send PDF:');
-                  if (!email || email.trim() === '') {
-                    alert('Email is required to send PDF');
-                    return;
-                  }
-                }
-                try {
-                  const res = await fetch(`/api/admin/reports/${report.id}/send-pdf`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email.trim() })
-                  });
-                  const j = await res.json();
-                  if (j.status === 'success') {
-                    alert('PDF sent successfully to ' + email);
-                  } else {
-                    alert('Failed to send PDF: ' + (j.error || 'Unknown error'));
-                  }
-                } catch (e) {
-                  alert('Failed to send PDF');
-                }
-              }}
-              className="rounded-xl border border-white/10 bg-gradient-to-r from-green-500/30 to-blue-500/20 px-4 py-2 text-sm hover:bg-white/10"
-            >
-              📧 Send PDF
-            </button>
           </div>
         </div>
       </div>

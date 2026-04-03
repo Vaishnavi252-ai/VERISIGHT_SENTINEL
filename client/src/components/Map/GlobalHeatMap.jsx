@@ -127,7 +127,7 @@ function getSpreadLatLon(baseLat, baseLon, country) {
   return { lat: spreadLat, lon: spreadLon };
 }
 
-function GlobalHeatMap({ filters = {} }) {
+function GlobalHeatMap({ filters = {}, selectedLocation = null }) {
   const mapRef = useRef(null);
   const markersRef = useRef([]);
 
@@ -140,6 +140,10 @@ function GlobalHeatMap({ filters = {} }) {
     if (filters.min_conf != null) params.set('min_conf', filters.min_conf);
     if (filters.max_conf != null) params.set('max_conf', filters.max_conf);
     if (filters.verification_status) params.set('verification_status', filters.verification_status);
+    // Add location filter if selected (e.g., from reports)
+    if (selectedLocation && selectedLocation.country) {
+      params.set('country', selectedLocation.country);
+    }
     try {
       const res = await fetch(`/api/detections/export?${params}`);
       const csv = await res.text();
@@ -160,12 +164,20 @@ function GlobalHeatMap({ filters = {} }) {
       // Clear existing markers
       markersRef.current.forEach(marker => mapRef.current.removeLayer(marker));
       markersRef.current = [];
-      // Add new markers
+      // Add new markers with better spread if location is filtered
       points.forEach(([lat, lon, conf, country]) => {
-        // For historical data, use actual lat/lon with small random offset to avoid exact stacking
-        const offset = 1.0; // slightly larger offset for better spread
-        const adjustedLat = lat + (Math.random() - 0.5) * offset;
-        const adjustedLon = lon + (Math.random() - 0.5) * offset;
+        let adjustedLat, adjustedLon;
+        if (selectedLocation && selectedLocation.country) {
+          // For location-filtered view, spread markers within the country bounds
+          const spreadPos = getSpreadLatLon(lat, lon, country);
+          adjustedLat = spreadPos.lat;
+          adjustedLon = spreadPos.lon;
+        } else {
+          // For global view, use actual lat/lon with small random offset
+          const offset = 1.0;
+          adjustedLat = lat + (Math.random() - 0.5) * offset;
+          adjustedLon = lon + (Math.random() - 0.5) * offset;
+        }
         const color = conf >= 0.9 ? 'red' : conf >= 0.7 ? 'orange' : 'yellow';
         const marker = L.circleMarker([adjustedLat, adjustedLon], {
           color: color,
@@ -221,7 +233,7 @@ function GlobalHeatMap({ filters = {} }) {
 
   useEffect(() => {
     fetchDetections();
-  }, [filters]);
+  }, [filters, selectedLocation]);
 
   return (
     <div className="bg-black border border-green-500/30 rounded-xl p-3 ring-1 ring-green-500/20">

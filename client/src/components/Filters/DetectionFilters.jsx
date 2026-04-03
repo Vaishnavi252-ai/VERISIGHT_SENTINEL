@@ -28,6 +28,7 @@ function DetectionFilters({ value, onChange }) {
       <div className="space-y-2">
         <label className="block text-sm text-gray-300">Window</label>
         <select className="w-full bg-black/40 text-white rounded px-3 py-2 border border-white/10" value={localFilters.window} onChange={e => set('window', e.target.value)}>
+          <option value="all">All Time</option>
           <option value="24h">Last 24h</option>
           <option value="7d">Last 7d</option>
           <option value="30d">Last 30d</option>

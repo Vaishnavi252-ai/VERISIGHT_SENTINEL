@@ -146,7 +146,7 @@ export default function OmniThreatPulse() {
       try {
         const [recentRes, metricsRes] = await Promise.all([
           fetch('/api/detections/recent?limit=12'),
-          fetch('/api/detections/metrics?window=24h'),
+          fetch('/api/detections/metrics?window=all'),
         ]);
         const recentJson = await recentRes.json();
         const metricsJson = await metricsRes.json();
@@ -213,7 +213,7 @@ export default function OmniThreatPulse() {
     try {
       const [recentRes, metricsRes] = await Promise.all([
         fetch('/api/detections/recent?limit=12'),
-        fetch('/api/detections/metrics?window=24h'),
+        fetch('/api/detections/metrics?window=all'),
       ]);
       const recentJson = await recentRes.json();
       const metricsJson = await metricsRes.json();

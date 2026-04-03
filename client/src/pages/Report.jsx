@@ -60,8 +60,16 @@ export default function ReportPage() {
                 <div className={`mt-2 font-semibold ${detection.result_label === 'REAL' ? 'text-green-400' : 'text-red-400'}`}>{detection.result_label}</div>
                 <div className="text-xs text-gray-400 mt-1">Confidence {(detection.confidence * 100).toFixed(2)}%</div>
 
-                <div className="mt-4">
-                  <button onClick={() => navigate(-1)} className="px-4 py-2 bg-white/5 rounded-md text-sm">← Back to Scan</button>
+                <div className="mt-4 space-y-2">
+                  <button onClick={() => navigate(-1)} className="w-full px-4 py-2 bg-white/5 rounded-md text-sm hover:bg-white/10">← Back to Scan</button>
+                  {detection.country && (
+                    <button 
+                      onClick={() => navigate('/global-intel', { state: { selectedLocation: { country: detection.country, city: detection.city } } })} 
+                      className="w-full px-4 py-2 bg-cyan-600/20 border border-cyan-500/50 rounded-md text-sm text-cyan-300 hover:bg-cyan-600/30"
+                    >
+                      📍 View on Map
+                    </button>
+                  )}
                 </div>
               </div>
 

@@ -70,7 +70,7 @@ export default function AdminDashboard() {
 
       // fetch analytics top-countries to compute high-confidence hotspots
       try {
-        const tcr = await fetch('/api/detections/top-countries?window=7d');
+        const tcr = await fetch('/api/detections/top-countries?window=all');
         const tcl = await tcr.json();
         const arr = Array.isArray(tcl) ? tcl : [];
         const high = arr.filter(x => x?.threatLevel === 'High' || (Number(x?.avg_confidence || 0) >= 0.9)).length;
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
 
       // fetch top platforms data
       try {
-        const tpr = await fetch('/api/detections/top-platforms?window=7d');
+        const tpr = await fetch('/api/detections/top-platforms?window=all');
         const tpj = await tpr.json();
         setTopPlatforms(Array.isArray(tpj) ? tpj : []);
       } catch (e) {
