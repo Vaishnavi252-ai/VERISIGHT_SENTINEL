@@ -266,6 +266,28 @@ app.register_blueprint(analytics_explain_bp)
 app.register_blueprint(text_scan_bp)
 
 # --------------------------------------------------
+# Request Logging Hook
+# --------------------------------------------------
+@app.before_request
+def log_request():
+    from flask import request
+    print(f"\n{'='*80}", flush=True)
+    print(f"🔵 INCOMING REQUEST", flush=True)
+    print(f"   Method: {request.method}", flush=True)
+    print(f"   Path: {request.path}", flush=True)
+    print(f"   URL: {request.url}", flush=True)
+    print(f"   Headers: {dict(request.headers)}", flush=True)
+    if request.method == "POST":
+        print(f"   Form Keys: {list(request.form.keys())}", flush=True)
+        print(f"   Files Keys: {list(request.files.keys())}", flush=True)
+        if 'audio' in request.files:
+            print(f"   Audio File: {request.files['audio'].filename}", flush=True)
+        else:
+            print(f"   ⚠️  NO 'audio' KEY IN FILES!", flush=True)
+            print(f"   Available files: {request.files}", flush=True)
+    print(f"{'='*80}", flush=True)
+
+# --------------------------------------------------
 # Serve extracted video frames
 # --------------------------------------------------
 app.static_folder = "uploads"

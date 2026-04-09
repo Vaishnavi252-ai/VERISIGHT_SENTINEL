@@ -113,6 +113,72 @@ export default function OmniThreatPulse() {
     return () => window.removeEventListener('resize', measure);
   }, []);
 
+  // Draw ECG waveform on canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const drawWave = () => {
+      // Clear canvas
+      ctx.fillStyle = '#0f0f1f';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw grid
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 0.5;
+      ctx.globalAlpha = 0.3;
+
+      // Horizontal grid lines
+      for (let i = 0; i < canvas.height; i += 10) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvas.width, i);
+        ctx.stroke();
+      }
+
+      // Vertical grid lines
+      for (let i = 0; i < canvas.width; i += 10) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1;
+
+      // Draw waveform
+      const points = wavePointsRef.current;
+      const centerY = canvas.height / 2;
+      const maxAmplitude = canvas.height * 0.35;
+
+      if (points.length > 1) {
+        for (let i = 0; i < points.length - 1; i++) {
+          const point = points[i];
+          const nextPoint = points[i + 1];
+
+          ctx.strokeStyle = point.color || '#06b6d4';
+          ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.8;
+
+          ctx.beginPath();
+          ctx.moveTo(i, centerY - point.value * maxAmplitude);
+          ctx.lineTo(i + 1, centerY - nextPoint.value * maxAmplitude);
+          ctx.stroke();
+        }
+      }
+
+      ctx.globalAlpha = 1;
+    };
+
+    const animationId = setInterval(drawWave, 50); // Redraw every 50ms
+    drawWave(); // Initial draw
+
+    return () => clearInterval(animationId);
+  }, []);
+
   const pushWavePoint = (event) => {
     const width = dimensions.width || 640;
     const value = Math.max(0.02, Math.min(1, (event.confidence || 0) / 100));

@@ -74,7 +74,8 @@ def analytics_upload_sources():
 @admin_bp.route('/api/admin/reports', methods=['GET'])
 def list_reports():
     try:
-        reports = Report.query.order_by(Report.created_at.desc()).limit(200).all()
+        limit = request.args.get('limit', type=int, default=1000)  # Allow configurable limit, default 1000 all
+        reports = Report.query.order_by(Report.created_at.desc()).limit(limit).all()
         out = []
         def get_ai_literacy_verdict(d):
             if not d:

@@ -29,7 +29,7 @@ const AudioScan = () => {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('audio', file);
 
       const res = await fetch('/api/audio-scan', {
         method: "POST",
@@ -37,10 +37,12 @@ const AudioScan = () => {
         credentials: 'include'
       });
       const data = await res.json();
+      const confidenceValue = Number(data.confidence);
+
       setScanResult({
         status: data.result === 'FAKE' ? 'AI-Generated Voice Detected' : 'Authentic Audio',
         label: data.result,
-        confidence: data.confidence * 100,
+        confidence: Number.isFinite(confidenceValue) ? confidenceValue : 0,
         color: data.result === 'FAKE' ? 'text-red-400' : 'text-green-400',
         barColor: data.result === 'FAKE' ? 'from-red-500 to-orange-500' : 'from-green-500 to-emerald-500',
         detection_id: data.detection_id,

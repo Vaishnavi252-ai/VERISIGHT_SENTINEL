@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FaInstagram, FaFacebook, FaXTwitter, FaWhatsapp, FaTiktok, FaSnapchat, FaYoutube, FaTelegram } from 'react-icons/fa6';
 import { Globe } from 'lucide-react';
 
-export default function ReportQuestionSlider({ detectionId, onClose }) {
+export default function ReportQuestionSlider({ detectionId, mediaType, onClose }) {
   const [questions, setQuestions] = useState([]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -16,6 +16,13 @@ export default function ReportQuestionSlider({ detectionId, onClose }) {
   const [customPlatform, setCustomPlatform] = useState('');
   const [showCountryInput, setShowCountryInput] = useState(false);
   const [country, setCountry] = useState('');
+  const normalizedMediaType = (() => {
+    const mt = (mediaType || '').toLowerCase();
+    if (['text', 'url', 'file'].includes(mt)) return mt;
+    if (['document', 'doc', 'txt'].includes(mt)) return 'file';
+    return mt;
+  })();
+  const isTextPipeline = ['text', 'url', 'file'].includes(normalizedMediaType);
 
   useEffect(() => {
     setLoadingQuestions(true);
@@ -32,12 +39,13 @@ export default function ReportQuestionSlider({ detectionId, onClose }) {
     setShowPlatformSelector(false);
     setShowCountryInput(false);
 
-    fetch(`/api/reports/questions/${detectionId}`)
+    const source = isTextPipeline ? `/api/reports/questions/type/${normalizedMediaType}` : `/api/reports/questions/${detectionId}`;
+    fetch(source)
       .then(res => res.json())
       .then(data => {
         if (data.status === "success") {
           setQuestions(data.questions);
-          if (Array.isArray(data.questions) && data.questions.length > 0) {
+          if (!isTextPipeline && Array.isArray(data.questions) && data.questions.length > 0) {
             setShowPlatformSelector(true);
           }
         } else {
@@ -48,10 +56,10 @@ export default function ReportQuestionSlider({ detectionId, onClose }) {
       .finally(() => {
         setLoadingQuestions(false);
       });
-  }, [detectionId]);
+  }, [detectionId, isTextPipeline, mediaType]);
 
-  const q = questions[current];
-  const progress = ((current + 1) / questions.length) * 100;
+  const q = questions[current] || { question: '', type: 'long' };
+  const progress = questions.length > 0 ? ((current + 1) / questions.length) * 100 : 0;
 
   if (loadingQuestions) {
     return (
@@ -279,7 +287,7 @@ export default function ReportQuestionSlider({ detectionId, onClose }) {
         {/* ✍️ Answer Input (ALWAYS PRESENT) */}
         <div className="mt-2">
           {q.type === "yesno" ? (
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
               {["Yes", "No"].map(v => (
                 <button
                   key={v}
@@ -305,6 +313,25 @@ export default function ReportQuestionSlider({ detectionId, onClose }) {
                 🤷 Skip
               </button>
             </div>
+          ) : (q.type === "choice" || q.type === "mcq") && q.options ? (
+            <div className="grid gap-3">
+              {q.options.map(option => (
+                <button
+                  key={option}
+                  onClick={() => {
+                    setAnswers({ ...answers, [current]: option });
+                    setCurrentError('');
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-lg border-2 transition ${
+                    answers[current] === option
+                      ? 'bg-purple-600/30 text-purple-100 border-purple-500'
+                      : 'border-gray-600 text-gray-300 hover:border-purple-400 hover:bg-white/5'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
           ) : (
             <textarea
               rows={4}
@@ -324,22 +351,40 @@ export default function ReportQuestionSlider({ detectionId, onClose }) {
           <p className="text-red-400 text-sm mt-2 animate-pulse">{currentError}</p>
         )}
 
-        {/* 📧 Email - REQUIRED */}
+        {/* � Country + Email for text/url/file reporting */}
         {current === questions.length - 1 && (
-          <div className="mt-4">
-            <label className="block text-sm text-gray-300 mb-2">
-              Email Address <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="email"
-              required
-              placeholder="your.email@example.com"
-              className="w-full bg-black/40 border border-cyan-500/20 rounded-lg px-4 py-3 text-gray-200 focus:outline-none focus:border-cyan-400"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-            <p className="text-xs text-gray-500 mt-2">Required for receiving updates and PDF report on your submission</p>
-          </div>
+          <>
+            {isTextPipeline && (
+              <div className="mt-4">
+                <label className="block text-sm text-gray-300 mb-2">
+                  Country <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., United States, India, United Kingdom..."
+                  className="w-full bg-black/40 border border-cyan-500/20 rounded-lg px-4 py-3 text-gray-200 focus:outline-none focus:border-cyan-400"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                />
+                <p className="text-xs text-gray-500 mt-2">Required for tracking where suspicious text or documents are being reported.</p>
+              </div>
+            )}
+            <div className="mt-4">
+              <label className="block text-sm text-gray-300 mb-2">
+                Email Address <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="your.email@example.com"
+                className="w-full bg-black/40 border border-cyan-500/20 rounded-lg px-4 py-3 text-gray-200 focus:outline-none focus:border-cyan-400"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+              <p className="text-xs text-gray-500 mt-2">Required for receiving updates and PDF report on your submission</p>
+            </div>
+          </>
         )}
 
         {/* 🔄 Navigation */}
@@ -382,6 +427,11 @@ export default function ReportQuestionSlider({ detectionId, onClose }) {
                   }
                 }
 
+                // Validate country for text/url/file submissions
+                if (isTextPipeline && (!country || !country.trim())) {
+                  alert('Please provide your country before submitting the report');
+                  return;
+                }
                 // Validate email is provided
                 if (!email || !email.trim()) {
                   alert('Please provide your email address to submit the report');
@@ -396,6 +446,7 @@ export default function ReportQuestionSlider({ detectionId, onClose }) {
                 const finalPlatform = platform === 'Other' ? customPlatform : platform;
                 const payload = {
                   detection_id: detectionId,
+                  type: normalizedMediaType,
                   platform: finalPlatform || null,
                   country: country || null,
                   reporter_email: email,

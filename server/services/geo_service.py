@@ -121,7 +121,40 @@ COUNTRY_CENTROIDS = {
     'BR': {'lat': -14.2350, 'lon': -51.9253}, # Brazil
     'RU': {'lat': 61.5240, 'lon': 105.3188}, # Russia
     'AU': {'lat': -25.2744, 'lon': 133.7751}, # Australia
-    # Add more as needed
+    'CA': {'lat': 56.1304, 'lon': -106.3468}, # Canada
+    'MX': {'lat': 23.6345, 'lon': -102.5528}, # Mexico
+    'IT': {'lat': 41.8719, 'lon': 12.5674},  # Italy
+    'ES': {'lat': 40.4637, 'lon': -3.7492},  # Spain
+    'KR': {'lat': 35.9078, 'lon': 127.7669}, # South Korea
+    'NL': {'lat': 52.1326, 'lon': 5.2913},   # Netherlands
+    'SE': {'lat': 60.1282, 'lon': 18.6435},  # Sweden
+    'NO': {'lat': 60.4720, 'lon': 8.4689},   # Norway
+    'DK': {'lat': 56.2639, 'lon': 9.5018},   # Denmark
+    'FI': {'lat': 61.9241, 'lon': 25.7482},  # Finland
+    'PL': {'lat': 51.9194, 'lon': 19.1451},  # Poland
+    'TR': {'lat': 38.9637, 'lon': 35.2433},  # Turkey
+    'SA': {'lat': 23.8859, 'lon': 45.0792},  # Saudi Arabia
+    'AE': {'lat': 23.4241, 'lon': 53.8478},  # UAE
+    'IL': {'lat': 31.0461, 'lon': 34.8516},  # Israel
+    'EG': {'lat': 26.8206, 'lon': 30.8025},  # Egypt
+    'ZA': {'lat': -30.5595, 'lon': 22.9375}, # South Africa
+    'NG': {'lat': 9.0820, 'lon': 8.6753},    # Nigeria
+    'KE': {'lat': -0.0236, 'lon': 37.9062},  # Kenya
+    'AR': {'lat': -38.4161, 'lon': -63.6167}, # Argentina
+    'CL': {'lat': -35.6751, 'lon': -71.5430}, # Chile
+    'CO': {'lat': 4.5709, 'lon': -74.2973},  # Colombia
+    'PE': {'lat': -9.1900, 'lon': -75.0152}, # Peru
+    'VE': {'lat': 6.4238, 'lon': -66.5897},  # Venezuela
+    'PK': {'lat': 30.3753, 'lon': 69.3451},  # Pakistan
+    'BD': {'lat': 23.6850, 'lon': 90.3563},  # Bangladesh
+    'ID': {'lat': -0.7893, 'lon': 113.9213}, # Indonesia
+    'TH': {'lat': 15.8700, 'lon': 100.9925}, # Thailand
+    'VN': {'lat': 14.0583, 'lon': 108.2772}, # Vietnam
+    'PH': {'lat': 12.8797, 'lon': 121.7740}, # Philippines
+    'MY': {'lat': 4.2105, 'lon': 101.6964},  # Malaysia
+    'SG': {'lat': 1.3521, 'lon': 103.8198},  # Singapore
+    'TH': {'lat': 15.8700, 'lon': 100.9925}, # Thailand
+    'ZZ': {'lat': 20.0, 'lon': 0.0},         # Fallback for unknown
 }
 
 # Map common country names to ISO codes
@@ -183,7 +216,13 @@ COUNTRY_NAME_TO_CODE = {
 
 def get_country_centroid(country_code: str) -> Dict[str, float]:
     """Get approximate center coordinates for a country."""
-    return COUNTRY_CENTROIDS.get(country_code.upper(), {'lat': 0.0, 'lon': 0.0})
+    result = COUNTRY_CENTROIDS.get(country_code.upper(), None)
+    if result:
+        return result
+    # For unknown country, use a more neutral fallback instead of (0, 0)
+    # Try to log and use ZZ (unknown) fallback
+    print(f"Warning: Country code '{country_code}' not found in centroids, using fallback")
+    return COUNTRY_CENTROIDS.get('ZZ', {'lat': 20.0, 'lon': 0.0})
 
 
 def normalize_country_input(country_input: str) -> str:

@@ -62,19 +62,11 @@ export default function ReportPage() {
 
                 <div className="mt-4 space-y-2">
                   <button onClick={() => navigate(-1)} className="w-full px-4 py-2 bg-white/5 rounded-md text-sm hover:bg-white/10">← Back to Scan</button>
-                  {detection.country && (
-                    <button 
-                      onClick={() => navigate('/global-intel', { state: { selectedLocation: { country: detection.country, city: detection.city } } })} 
-                      className="w-full px-4 py-2 bg-cyan-600/20 border border-cyan-500/50 rounded-md text-sm text-cyan-300 hover:bg-cyan-600/30"
-                    >
-                      📍 View on Map
-                    </button>
-                  )}
                 </div>
               </div>
 
               <div className="col-span-2">
-                <ReportQuestionSlider detectionId={detectionId} onClose={() => navigate(-1)} />
+                <ReportQuestionSlider detectionId={detectionId} mediaType={detection.media_type} onClose={() => navigate(-1)} />
               </div>
             </div>
           )}

@@ -7,6 +7,124 @@ import traceback
 
 reports_bp = Blueprint('reports', __name__)
 
+REPORT_QUESTION_SETS = {
+    'text': [
+        {
+            'question': 'What is the purpose of this text in your case?',
+            'type': 'mcq',
+            'options': [
+                'Academic work / assignment',
+                'Professional or office use',
+                'Personal use',
+                'Just testing / curiosity',
+                'Other'
+            ]
+        },
+        {
+            'question': 'How did you come across or obtain this text?',
+            'type': 'mcq',
+            'options': [
+                'I wrote it myself',
+                'Copied from a website/source',
+                'Shared by someone',
+                'Generated using a tool (if known)',
+                'Not sure'
+            ]
+        },
+        {
+            'question': 'Do you have any concerns about its authenticity or possible misuse?',
+            'type': 'mcq',
+            'options': [
+                'Yes, it seems suspicious',
+                'No, it seems normal',
+                'Not sure'
+            ]
+        }
+    ],
+    'url': [
+        {
+            'question': 'Why are you analyzing this webpage?',
+            'type': 'mcq',
+            'options': [
+                'Academic/research purpose',
+                'Verifying information authenticity',
+                'Suspicious content check',
+                'Just browsing/testing',
+                'Other'
+            ]
+        },
+        {
+            'question': 'How did you reach this URL?',
+            'type': 'mcq',
+            'options': [
+                'Search engine',
+                'Social media',
+                'Shared by someone',
+                'Advertisement/link redirect',
+                'Not sure'
+            ]
+        },
+        {
+            'question': 'Does anything about this page raise suspicion (content, design, or behavior)?',
+            'type': 'mcq',
+            'options': [
+                'Yes',
+                'No',
+                'Not sure'
+            ]
+        }
+    ],
+    'file': [
+        {
+            'question': 'What is the purpose of this document?',
+            'type': 'mcq',
+            'options': [
+                'Academic submission',
+                'Work/professional use',
+                'Personal notes',
+                'Verification/testing',
+                'Other'
+            ]
+        },
+        {
+            'question': 'How did you receive or create this file?',
+            'type': 'mcq',
+            'options': [
+                'Created by me',
+                'Downloaded from internet',
+                'Shared by someone',
+                'Generated using a tool',
+                'Not sure'
+            ]
+        },
+        {
+            'question': 'Do you suspect this document might be altered, generated, or misused?',
+            'type': 'mcq',
+            'options': [
+                'Yes',
+                'No',
+                'Not sure'
+            ]
+        }
+    ]
+}
+
+
+@reports_bp.route('/api/reports/questions/type/<string:question_type>', methods=['GET'])
+def get_report_questions_by_type(question_type):
+    qtype = (question_type or '').lower()
+    if qtype in ['document', 'doc', 'txt']:
+        qtype = 'file'
+
+    if qtype not in REPORT_QUESTION_SETS:
+        return jsonify({'status': 'error', 'error': 'Invalid report question type'}), 400
+
+    return jsonify({
+        'status': 'success',
+        'type': qtype,
+        'questions': REPORT_QUESTION_SETS[qtype]
+    })
+
 
 @reports_bp.route('/api/detections/<int:detection_id>', methods=['GET'])
 def get_detection(detection_id):
@@ -107,6 +225,7 @@ def submit_report():
             d.country = normalized_country
             d.lat = centroid['lat']
             d.lon = centroid['lon']
+            d.city = reported_country  # Store the reported location name as city if not available
             db.session.add(d)
 
             # Publish updated detection event for real-time map update
