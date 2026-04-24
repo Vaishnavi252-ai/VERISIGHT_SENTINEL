@@ -1,7 +1,11 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from model.video_detect import predict_video
 from services.llm_service import generate_ai_literacy_report
+from app.models import db, Detection, User
+from services.geo_service import enrich_detection_fields
+from services.event_bus import bus
 
 import os
 import traceback
@@ -22,6 +26,7 @@ def allowed_file(filename):
 # 1️⃣ Scan video for deepfake detection
 # ------------------------------------------
 @video_scan_bp.route("/api/video-scan", methods=["POST"])
+@jwt_required()
 def scan_video():
     """
     Endpoint to scan a video for deepfake detection
@@ -61,15 +66,12 @@ def scan_video():
 
         # Persist detection record with geo enrichment and publish SSE
         try:
-            from app.models import db, Detection
-            from services.geo_service import enrich_detection_fields
-            from services.event_bus import bus
-
+            uid = get_jwt_identity()
             client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
             geo_fields = enrich_detection_fields({}, client_ip)
 
             det = Detection(
-                user_id=None,
+                user_id=uid,
                 media_type='video',
                 result_label=result['label'].upper(),
                 confidence=float(result['confidence']),
@@ -144,6 +146,7 @@ def scan_video():
 # 2️⃣ Generate GenAI forensic explanation for video
 # ------------------------------------------
 @video_scan_bp.route("/api/video-explain", methods=["POST"])
+@jwt_required()
 def generate_video_ai_explanation():
     try:
         data = request.get_json()
@@ -180,6 +183,7 @@ def generate_video_ai_explanation():
 # 2️⃣ Scan video from URL (YouTube, etc.)
 # ------------------------------------------
 @video_scan_bp.route("/api/video-scan-url", methods=["POST"])
+@jwt_required()
 def scan_video_from_url():
     """
     Download a video from URL and scan for deepfakes
@@ -229,6 +233,38 @@ def scan_video_from_url():
                 "detail": result.get("error", "Model prediction failed")
             }), 500
 
+        # Persist detection record
+        try:
+            uid = get_jwt_identity()
+            client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            geo_fields = enrich_detection_fields({}, client_ip)
+
+            det = Detection(
+                user_id=uid,
+                media_type='video',
+                result_label=result['label'].upper(),
+                confidence=float(result['confidence']),
+                file_path=url,
+                ip=geo_fields.get('ip'),
+                country=geo_fields.get('country'),
+                city=geo_fields.get('city'),
+                lat=geo_fields.get('lat'),
+                lon=geo_fields.get('lon'),
+                metadata={
+                    "frame_count": result.get("frame_count", 0),
+                    "avg_probability": result.get("avg_probability", 0),
+                    "frame_probabilities": result.get("frame_probabilities", []),
+                    **geo_fields
+                }
+            )
+            db.session.add(det)
+            db.session.commit()
+            detection_id = det.id
+        except Exception as db_err:
+            print(f"⚠️ Database error (non-critical): {db_err}")
+            traceback.print_exc()
+            detection_id = None
+
         confidence_raw = float(result['confidence'])
         confidence_pct = round(confidence_raw * 100.0, 2)
         if confidence_pct < 50:
@@ -248,7 +284,7 @@ def scan_video_from_url():
             "avg_fake_score": result.get("avg_probability", 0),
             "frame_count": result.get("frame_count"),
             "frame_probabilities": result.get("frame_probabilities", []),
-            "detection_id": None
+            "detection_id": detection_id
         }), 200
 
     except Exception as e:
@@ -268,8 +304,6 @@ def get_video_scan_history():
     Get history of video scans (detections with media_type='video')
     """
     try:
-        from app.models import db, Detection
-        
         limit = request.args.get('limit', 50, type=int)
         
         detections = db.session.query(Detection)\

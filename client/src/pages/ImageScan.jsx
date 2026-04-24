@@ -61,8 +61,15 @@ const ImageScan = () => {
     try {
       const response = await fetch('/api/image-scan', {
         method: 'POST',
+        credentials: 'include',
         body: formData,
       });
+
+      if (response.status === 401 || response.status === 403) {
+        alert('Session expired. Please log in again.');
+        navigate('/signin');
+        return;
+      }
 
       const data = await response.json();
 
@@ -94,7 +101,7 @@ const ImageScan = () => {
     try {
       // Prefer retrieving an explanation for a saved detection (cached)
       if (result && result.detection_id) {
-        const r = await fetch(`/api/detections/${result.detection_id}`);
+        const r = await fetch(`/api/detections/${result.detection_id}`, { credentials: 'include' });
         const j = await r.json();
 
         if (j.status === 'success') {
@@ -105,6 +112,7 @@ const ImageScan = () => {
           const r2 = await fetch('/api/image-explain', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ label: result.label, confidence: Number(result.confidence_score) / 100, metrics: {} })
           });
           const j2 = await r2.json();
@@ -116,6 +124,7 @@ const ImageScan = () => {
         const r = await fetch('/api/image-explain', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ label: result?.label, confidence: Number(result?.confidence_score) / 100, metrics: {} })
         });
         const j = await r.json();

@@ -59,6 +59,12 @@ const VideoScan = () => {
         credentials: 'include'
       });
 
+      if (res.status === 401 || res.status === 403) {
+        alert('Session expired. Please log in again.');
+        navigate('/signin');
+        return;
+      }
+
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || "Server error");

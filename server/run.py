@@ -44,7 +44,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # --------------------------------------------------
 # JWT Config
 # --------------------------------------------------
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET', 'change-this-secret')
+# Use a stable dev secret so restarts don't invalidate existing tokens
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET', 'verisight-stable-dev-secret-2026')
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_COOKIE_SECURE'] = False
 app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
@@ -55,7 +56,7 @@ app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 # ==================================================
 CORS(
     app,
-    resources={r"/api/*": {"origins": "*"}},
+    resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}},
     supports_credentials=True
 )
 
@@ -64,6 +65,33 @@ CORS(
 # --------------------------------------------------
 db.init_app(app)
 jwt = JWTManager(app)
+
+# --------------------------------------------------
+# JWT Error Handlers (return clear messages instead of 422)
+# --------------------------------------------------
+@jwt.invalid_token_loader
+def invalid_token_callback(error_string):
+    print(f"❌ JWT Invalid Token: {error_string}")
+    return jsonify({
+        "status": "error",
+        "detail": "Invalid authentication token. Please log in again."
+    }), 401
+
+@jwt.unauthorized_loader
+def unauthorized_callback(error_string):
+    print(f"❌ JWT Unauthorized: {error_string}")
+    return jsonify({
+        "status": "error",
+        "detail": "Authentication required. Please log in."
+    }), 401
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    print(f"❌ JWT Expired Token: {jwt_payload}")
+    return jsonify({
+        "status": "error",
+        "detail": "Session expired. Please log in again."
+    }), 401
 
 # --------------------------------------------------
 # Create DB tables
@@ -282,8 +310,8 @@ def log_request():
         print(f"   Files Keys: {list(request.files.keys())}", flush=True)
         if 'audio' in request.files:
             print(f"   Audio File: {request.files['audio'].filename}", flush=True)
-        else:
-            print(f"   ⚠️  NO 'audio' KEY IN FILES!", flush=True)
+        elif request.path == '/api/audio-scan' and 'audio' not in request.files:
+            print(f"   ⚠️  NO 'audio' KEY IN FILES for /api/audio-scan!", flush=True)
             print(f"   Available files: {request.files}", flush=True)
     print(f"{'='*80}", flush=True)
 

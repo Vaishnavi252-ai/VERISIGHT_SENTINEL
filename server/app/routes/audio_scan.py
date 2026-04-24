@@ -1,6 +1,10 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from model.audio_detect import scan_audio_for_fake
+from services.llm_service import generate_ai_literacy_report
+from app.models import db, Detection, User
+from services.geo_service import enrich_detection_fields
 
 import os
 import traceback
@@ -17,6 +21,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # 1️⃣ Scan audio for deepfake
 # ------------------------------------------
 @audio_scan_bp.route("/api/audio-scan", methods=["POST"])
+@jwt_required()
 def scan_audio():
     print(f"\n{'='*60}", flush=True)
     print("📡 /api/audio-scan REQUEST RECEIVED", flush=True)
@@ -70,12 +75,32 @@ def scan_audio():
         confidence_pct = confidence * 100
         print(f"✅ Final confidence: {confidence_pct:.2f}%", flush=True)
 
+        # Persist detection record with geo enrichment
+        uid = get_jwt_identity()
+        geo_fields = enrich_detection_fields(request.remote_addr, request.remote_addr)
+        det = Detection(
+            user_id=uid,
+            media_type='audio',
+            result_label=result["label"].upper(),
+            confidence=confidence,
+            file_path=audio_path,
+            ip=geo_fields.get('ip'),
+            country=geo_fields.get('country'),
+            city=geo_fields.get('city'),
+            lat=geo_fields.get('lat'),
+            lon=geo_fields.get('lon'),
+            upload_source='audio-upload'
+        )
+        db.session.add(det)
+        db.session.commit()
+
         response = {
             "status": "success",
             "result": result["label"].upper(),
             "confidence": f"{confidence_pct:.2f}",
             "raw_prob": result.get("raw_prob"),
             "audio_name": filename,
+            "detection_id": det.id,
             "features": result.get("features", {})
         }
         print(f"✅ Response: {response}", flush=True)
@@ -100,6 +125,7 @@ def scan_audio():
 # 2️⃣ AI Explanation (Optional)
 # ------------------------------------------
 @audio_scan_bp.route("/api/audio-explain", methods=["POST"])
+@jwt_required()
 def audio_explain():
     try:
         data = request.get_json()
@@ -121,3 +147,4 @@ def audio_explain():
             "status": "error",
             "error": str(e)
         }), 500
+

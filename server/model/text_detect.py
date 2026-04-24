@@ -92,7 +92,10 @@ FAKE_TEXT_EXAMPLES = [
 # 20 REAL URLs — genuine human-content news, community, editorial
 # ---------------------------------------------------------------
 REAL_URLS = [
-    "https://jamesclear.com/why-facts-dont-change-minds"
+    "https://jamesclear.com/why-facts-dont-change-minds",
+    "https://jamesclear.com",
+    "https://www.google.com",
+    "https://www.kaggle.com",
     "https://www.reddit.com/r/tifu/",
     "https://news.ycombinator.com/",
     "https://www.theguardian.com/",
@@ -301,39 +304,40 @@ def detect_text(text, is_paste=False):
             if is_paste and hardcoded["label"] == "REAL":
                 hardcoded["reason"] += " Pasted input matched a known real example."
                 hardcoded["metrics"] = {"word_count": word_count, "input_source": "paste"}
-            hardcoded["confidence"] = 0.75
             return hardcoded
 
-        if is_paste:
-            return {
-                "label": "FAKE",
-                "confidence": 0.75,
-                "reason": "Pasted text is treated as high-risk AI or copied content.",
-                "metrics": {"word_count": word_count, "input_source": "paste"},
-                "source": "paste_detection",
-                "type": "text"
-            }
-
-        if word_count < 15:
-            dash_result = check_dash_pattern(text)
-            if dash_result:
-                dash_result["confidence"] = 0.75
-                dash_result["metrics"] = {"word_count": word_count, "input_source": "paste" if is_paste else "typed"}
-                return dash_result
-
-            return {
-                "label": "SHORT_TEXT",
-                "confidence": 0.0,
-                "reason": "⚠️ Short text not allowed. Please enter at least 15–20 words for reliable detection.",
-                "metrics": {"word_count": word_count, "input_source": "paste" if is_paste else "typed"},
-                "type": "text"
-            }
-
+        # Run dash pattern check on all text lengths
         dash_result = check_dash_pattern(text)
         if dash_result:
-            dash_result["confidence"] = 0.75
             dash_result["metrics"] = {"word_count": word_count, "input_source": "paste" if is_paste else "typed"}
             return dash_result
+
+        # Allow short text but flag it for the user
+        if word_count < 15:
+            text_input = text[:512]
+            try:
+                result = detector(text_input)[0]
+                score = float(result['score'])
+                label_raw = result['label'].lower()
+                fake_prob = score if ("fake" in label_raw or "ai" in label_raw) else (1 - score)
+                final_label = "FAKE" if fake_prob > 0.5 else "REAL"
+                return {
+                    "label": final_label,
+                    "confidence": fake_prob if final_label == "FAKE" else 1 - fake_prob,
+                    "reason": f"Short text analyzed ({word_count} words). Results may be less reliable.",
+                    "metrics": {"word_count": word_count, "input_source": "paste" if is_paste else "typed", "ai_probability": round(fake_prob, 3)},
+                    "source": "model",
+                    "type": "text"
+                }
+            except Exception:
+                return {
+                    "label": "UNCERTAIN",
+                    "confidence": 0.5,
+                    "reason": f"Text too short for reliable detection ({word_count} words). Please provide at least 15 words.",
+                    "metrics": {"word_count": word_count, "input_source": "paste" if is_paste else "typed"},
+                    "source": "short_text_fallback",
+                    "type": "text"
+                }
 
         text_input = text[:512]
         result = detector(text_input)[0]

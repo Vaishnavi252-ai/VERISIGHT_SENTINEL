@@ -2,11 +2,20 @@ import React, { createContext, useState, useEffect } from 'react';
 
 export const AuthContext = createContext();
 
+const STORAGE_KEY = 'verisight_user';
+
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null); // { username, name, email, role }
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  }); // { username, name, email, role }
   const [loading, setLoading] = useState(true);
 
-  // On mount, try to load current user from server (checks cookie)
+  // On mount, validate with server and sync localStorage
   useEffect(() => {
     const fetchMe = async () => {
       try {
@@ -16,13 +25,21 @@ export const AuthProvider = ({ children }) => {
           try {
             data = await res.json();
           } catch (e) {
-            // non-JSON or empty response
             data = null;
           }
-          if (data && data.user) setCurrentUser(data.user);
+          if (data && data.user) {
+            setCurrentUser(data.user);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
+          } else {
+            setCurrentUser(null);
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        } else {
+          setCurrentUser(null);
+          localStorage.removeItem(STORAGE_KEY);
         }
       } catch (e) {
-        // ignore
+        // keep localStorage fallback if server is temporarily unreachable
       } finally {
         setLoading(false);
       }
@@ -48,7 +65,10 @@ export const AuthProvider = ({ children }) => {
       const msg = (data && data.msg) || res.statusText || 'Registration failed';
       throw new Error(msg);
     }
-    if (data && data.user) setCurrentUser(data.user);
+    if (data && data.user) {
+      setCurrentUser(data.user);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
+    }
     return data;
   };
 
@@ -69,7 +89,10 @@ export const AuthProvider = ({ children }) => {
       const msg = (data && data.msg) || res.statusText || 'Login failed';
       throw new Error(msg);
     }
-    if (data && data.user) setCurrentUser(data.user);
+    if (data && data.user) {
+      setCurrentUser(data.user);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
+    }
     return data;
   };
 
@@ -78,6 +101,7 @@ export const AuthProvider = ({ children }) => {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch (e) {}
     setCurrentUser(null);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   return (

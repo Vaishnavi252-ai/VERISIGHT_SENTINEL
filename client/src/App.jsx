@@ -30,19 +30,19 @@ function App() {
         <Route path="/" element={<Landing />} /> 
         
         {/* 3. Move Detection page to "/detection" */}
-        <Route path="/detection" element={<Detection />} /> 
+        <Route path="/detection" element={<ProtectedRoute><Detection /></ProtectedRoute>} />
 
-  <Route path="/signin" element={<SignIn />} />
-  <Route path="/signup" element={<SignUp />} />
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="/signup" element={<SignUp />} />
 
         {/* These routes are correct */}
         <Route path="/image-scan" element={<ProtectedRoute><ImageScan /></ProtectedRoute>} />
         <Route path="/video-scan" element={<ProtectedRoute><VideoScan /></ProtectedRoute>} />
-        <Route path="/audio-scan" element={<AudioScan />} />
-        <Route path="/text-scan" element={<TextScan />} />
+        <Route path="/audio-scan" element={<ProtectedRoute><AudioScan /></ProtectedRoute>} />
+        <Route path="/text-scan" element={<ProtectedRoute><TextScan /></ProtectedRoute>} />
         <Route path="/verify-success" element={<VerifySuccess />} />
-        <Route path="/explain/:reportId" element={<Explain />} />
-        <Route path="/report/:detectionId" element={<ReportPage />} />
+        <Route path="/explain/:reportId" element={<ProtectedRoute><Explain /></ProtectedRoute>} />
+        <Route path="/report/:detectionId" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/reports/:id" element={<AdminRoute><AdminReportView /></AdminRoute>} />
         <Route path="/global-live" element={<AdminRoute><GlobalHeatLive /></AdminRoute>} />

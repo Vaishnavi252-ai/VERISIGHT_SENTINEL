@@ -1,16 +1,13 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
+from flask_jwt_extended import jwt_required, get_jwt_identity
 import os
 import uuid
 
-from app.models import db, Detection
+from app.models import db, Detection, User
 from model.text_detect import detect_text, detect_url, detect_txt_file
 from services.llm_service import generate_ai_literacy_report
 from services.geo_service import enrich_detection_fields
-
-# Stub current_user if not defined
-def get_current_user():
-    return None
 
 text_scan_bp = Blueprint("text_scan", __name__)
 
@@ -21,6 +18,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # TEXT INPUT
 # -------------------------------
 @text_scan_bp.route("/api/text-scan", methods=["POST"])
+@jwt_required()
 def scan_text():
     try:
         data = request.get_json()
@@ -35,6 +33,7 @@ def scan_text():
 
         # Create Detection
         det = Detection(
+            user_id=get_jwt_identity(),
             media_type='text',
             result_label=result["label"],
             confidence=result["confidence"],
@@ -65,6 +64,7 @@ def scan_text():
 # URL SCAN
 # -------------------------------
 @text_scan_bp.route("/api/url-scan", methods=["POST"])
+@jwt_required()
 def scan_url():
     try:
         data = request.get_json()
@@ -77,6 +77,7 @@ def scan_url():
 
         # Create Detection
         det = Detection(
+            user_id=get_jwt_identity(),
             media_type='text',
             result_label=result["label"],
             confidence=result["confidence"],
@@ -108,6 +109,7 @@ def scan_url():
 # TXT FILE SCAN
 # -------------------------------
 @text_scan_bp.route("/api/txt-scan", methods=["POST"])
+@jwt_required()
 def scan_txt():
     try:
         if "file" not in request.files:
@@ -126,6 +128,7 @@ def scan_txt():
 
         # Create Detection
         det = Detection(
+            user_id=get_jwt_identity(),
             media_type='text',
             result_label=result["label"],
             confidence=result["confidence"],
@@ -158,6 +161,7 @@ def scan_txt():
 # TEXT EXPLAIN
 # -------------------------------
 @text_scan_bp.route("/api/text-explain", methods=["POST"])
+@jwt_required()
 def generate_text_explanation():
     try:
         data = request.get_json()

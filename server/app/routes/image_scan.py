@@ -1,6 +1,10 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from model.detect import scan_image_for_fake
+from app.models import db, Detection, User
+from services.geo_service import enrich_detection_fields
+from services.event_bus import bus
 
 import os
 import traceback
@@ -14,6 +18,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # 1️⃣ Scan image for authenticity
 # ------------------------------------------
 @image_scan_bp.route("/api/image-scan", methods=["POST"])
+@jwt_required()
 def scan_image():
     try:
         if "image" not in request.files:
@@ -37,15 +42,12 @@ def scan_image():
 
         # Persist detection record with geo enrichment and publish SSE
         try:
-            from app.models import db, Detection
-            from services.geo_service import enrich_detection_fields
-            from services.event_bus import bus
-
+            uid = get_jwt_identity()
             client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
             geo_fields = enrich_detection_fields({}, client_ip)
 
             det = Detection(
-                user_id=None,
+                user_id=uid,
                 media_type='image',
                 result_label=result['label'],
                 confidence=result['confidence'],
@@ -102,6 +104,7 @@ def scan_image():
 # 2️⃣ Generate GenAI forensic explanation
 # ------------------------------------------
 @image_scan_bp.route("/api/image-explain", methods=["POST"])
+@jwt_required()
 def generate_ai_explanation():
     try:
         data = request.get_json()
@@ -127,3 +130,4 @@ def generate_ai_explanation():
             "status": "error",
             "error": str(e)
         }), 500
+

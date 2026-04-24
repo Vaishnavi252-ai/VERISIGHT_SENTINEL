@@ -39,6 +39,7 @@ const TextScan = () => {
           headers: {
             "Content-Type": "application/json"
           },
+          credentials: 'include',
           body: JSON.stringify({ text, input_source: wasPasted ? "paste" : "typed" }),
         });
       } else if (mode === "url") {
@@ -47,6 +48,7 @@ const TextScan = () => {
           headers: {
             "Content-Type": "application/json"
           },
+          credentials: 'include',
           body: JSON.stringify({ url }),
         });
       } else if (mode === "file") {
@@ -54,8 +56,14 @@ const TextScan = () => {
         formData.append("file", file);
         response = await fetch("/api/txt-scan", {
           method: "POST",
+          credentials: 'include',
           body: formData,
         });
+      }
+      if (response.status === 401 || response.status === 403) {
+        alert('Session expired. Please log in again.');
+        navigate('/signin');
+        return;
       }
       const data = await response.json();
       if (response.ok) {
@@ -91,7 +99,7 @@ const TextScan = () => {
       let expl;
       // Prefer retrieving explanation for saved detection
       if (result.detection_id) {
-        const r = await fetch(`/api/detections/${result.detection_id}`);
+        const r = await fetch(`/api/detections/${result.detection_id}`, { credentials: 'include' });
         const j = await r.json();
         if (j.status === 'success') {
           expl = j.explanation || null;
@@ -102,6 +110,7 @@ const TextScan = () => {
         const r2 = await fetch('/api/text-explain', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ 
             label: result.label, 
             confidence: Number(result.confidence) / 100, 

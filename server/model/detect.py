@@ -115,13 +115,7 @@ def extract_face_cues(img_path):
 # ------------------------------------------
 def predict(img_path):
     if MODEL is None:
-        # Dummy prediction for testing
-        import random
-        is_fake = random.choice([True, False])
-        conf = random.uniform(0.7, 0.95)
-        label = "FAKE" if is_fake else "REAL"
-        raw_prob = conf if is_fake else 1 - conf
-        return label, conf, raw_prob
+        raise RuntimeError("Image model could not be loaded. Check that custom_model.keras exists.")
 
     arr = prepare_image(img_path)
     preds = MODEL.predict(arr, verbose=0)

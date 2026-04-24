@@ -60,17 +60,16 @@ def predict_video(video_path):
 
         label = "Fake" if fake_prob > PREDICTION_THRESHOLD else "Real"
 
+        # Return honest confidence = the model's softmax probability for the predicted class
         max_prob = max(fake_prob, 1 - fake_prob)
-        confidence = 0.8 + 0.2 * max_prob
-
-        frame_probs = [fake_prob] * 16
+        confidence = max_prob
 
         return {
             "label": label,
             "confidence": float(confidence),
             "avg_probability": float(fake_prob),
-            "frame_probabilities": frame_probs,
-            "frame_count": len(frame_probs)
+            "frame_probabilities": [float(fake_prob)],
+            "frame_count": 1
         }
 
     except Exception as e:

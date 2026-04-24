@@ -84,13 +84,16 @@ def register():
     user.verification_token = token
     db.session.commit()
 
-    _send_verification_email(user, token)
+    email_sent = _send_verification_email(user, token)
 
     # Send welcome email
     from services.notification_service import notify_welcome_signup
-    notify_welcome_signup(user.email, user.name or user.username)
+    welcome_sent = notify_welcome_signup(user.email, user.name or user.username)
 
-    return jsonify({'msg': 'verification_sent'}), 201
+    resp = {'msg': 'verification_sent'}
+    if not email_sent:
+        resp['warning'] = 'Verification email could not be sent. Please contact support or try resending later.'
+    return jsonify(resp), 201
 
 
 @auth_bp.route('/login', methods=['POST'])
@@ -113,7 +116,7 @@ def login():
             admin_user = User(username='admin@123', email='admin@verisight', name='Admin', password_hash=generate_password_hash('Vaishu2004'), role='Admin', email_verified=True)
             db.session.add(admin_user)
             db.session.commit()
-        access_token = create_access_token(identity=admin_user.id, additional_claims={'role': 'Admin'}, expires_delta=timedelta(hours=8))
+        access_token = create_access_token(identity=str(admin_user.id), additional_claims={'role': 'Admin'}, expires_delta=timedelta(hours=8))
         resp = jsonify({'msg': 'Logged in', 'user': admin_user.to_dict()})
         set_access_cookies(resp, access_token)
         print(f"Admin login successful")
@@ -136,7 +139,7 @@ def login():
     # if not user.email_verified:
     #     return jsonify({'msg': 'Email not verified'}), 403
 
-    access_token = create_access_token(identity=user.id, additional_claims={'role': user.role}, expires_delta=timedelta(hours=8))
+    access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role}, expires_delta=timedelta(hours=8))
     resp = jsonify({'msg': 'Logged in', 'user': user.to_dict()})
     set_access_cookies(resp, access_token)
     print(f"Login successful for user: {username}, role: {user.role}")  # Debug log
@@ -180,7 +183,7 @@ def verify_email(token):
     user.verification_token = None
     db.session.commit()
 
-    access_token = create_access_token(identity=user.id, additional_claims={'role': user.role}, expires_delta=timedelta(hours=8))
+    access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role}, expires_delta=timedelta(hours=8))
     frontend = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
     redirect_url = f"{frontend}/verify-success"
 

@@ -167,32 +167,167 @@ CRITICAL RULES:
     is_video = media_type.lower() in ["video", "mov", "mp4", "avi", "webm"]
     is_audio = media_type.lower() in ["audio", "mp3", "wav", "aac", "m4a"]
     
-    prompt = f"""You are analyzing a {media_type} for AI-generated or deepfake content.
-
-DETECTION INPUT:
-- Content Type: {media_type.upper()}
-- Detection Result: {detection_result}
-- Confidence Score: {confidence:.1%}
-- Technical Features Detected: {json.dumps(technical_features)}
-
-OUTPUT INSTRUCTIONS:
-Return ONLY valid JSON with these EXACT 8 sections. Use numeric scores 0-10 only where evidence supports. Mark unavailable sections as "N/A".
-
-For VIDEO: Include temporal/motion analysis (sections 4, 5 temporal parts).
-For AUDIO: Focus on voice consistency, synthesis artifacts, timing.
-For TEXT/IMAGE: Mark motion/frame analysis as N/A.
-
-Return this JSON structure exactly:"""
-
     # Build the JSON template dynamically based on media type
-    json_template = {
-        "1_final_verdict": {
-            "classification": "[Real|Fake|Likely Fake|Inconclusive - pick one based ONLY on evidence]",
-            "confidence_score": "[0-100, match detection result]",
-            "risk_level": "[Low|Medium|High]"
-        },
-        "2_ai_literacy_explanation": "[2-3 simple lines explaining why real/fake based ONLY on visible evidence. Understandable to non-technical users.]",
-        "3_key_detection_indicators": {
+    if is_audio:
+        # AUDIO-SPECIFIC template with all audio parameters
+        json_template = {
+            "1_final_verdict": {
+                "classification": "[Real|Fake|Likely Fake|Inconclusive - pick one based ONLY on evidence]",
+                "confidence_score": "[0-100, match detection result]",
+                "risk_level": "[Low|Medium|High]"
+            },
+            "2_ai_literacy_explanation": "[2-3 simple lines explaining why real/fake based ONLY on audible evidence. Understandable to non-technical users.]",
+            "3_key_detection_indicators": {
+                "voice_authenticity": {
+                    "voice_identity_consistency": "[score 0-10 + reason: assess voice shifts across segments, pitch consistency]",
+                    "timbre_naturalness": "[score 0-10 + reason: assess metallic or synthetic tone, unnatural resonance]",
+                    "harmonic_balance": "[score 0-10 + reason: assess missing natural harmonics, over-smoothed tones]"
+                },
+                "linguistic_intelligence": {
+                    "context_awareness": "[score 0-10 + reason: assess if words match context naturally]",
+                    "sentence_coherence": "[score 0-10 + reason: assess awkward phrasing or structure]",
+                    "language_fluency": "[score 0-10 + reason: assess robotic or overly perfect speech patterns]"
+                },
+                "environmental_realism": {
+                    "ambient_sound_presence": "[score 0-10 + reason: assess natural environment noise, room tone]",
+                    "background_continuity": "[score 0-10 + reason: assess sudden changes in background sound]",
+                    "spatial_audio_depth": "[score 0-10 + reason: assess flat or 2D sound space, stereo width]"
+                },
+                "temporal_consistency": {
+                    "pause_distribution": "[score 0-10 + reason: assess unnatural pauses between words]",
+                    "rhythm_consistency": "[score 0-10 + reason: assess irregular speaking rhythm, metronomic patterns]",
+                    "speed_variation": "[score 0-10 + reason: assess sudden speed changes, unnatural pacing]"
+                },
+                "frequency_signal_analysis": {
+                    "frequency_distribution": "[score 0-10 + reason: assess imbalanced frequency spectrum]",
+                    "high_frequency_loss": "[score 0-10 + reason: assess missing crispness, AI smoothing effect]",
+                    "low_frequency_noise": "[score 0-10 + reason: assess artificial bass artifacts, rumble]"
+                },
+                "ai_specific_artifacts": {
+                    "voice_cloning_traces": "[score 0-10 + reason: assess known cloning patterns, voice mimicry signatures]",
+                    "gan_model_noise_signature": "[score 0-10 + reason: assess synthetic generation traces, model fingerprints]",
+                    "over_clean_signal": "[score 0-10 + reason: assess too perfect audio, lack of real-world noise]"
+                }
+            },
+            "4_audio_segment_analysis": "[For audio: provide detailed breakdown of suspicious segments, artifacts, or 'No suspicious segments detected']",
+            "5_technical_signals": {
+                "synthetic_probability": "[Provide % estimate with reasoning: 0-20% likely real, 20-50% uncertain, 50-80% suspicious, 80-100% likely AI-generated]",
+                "spectral_anomalies": "[score 0-10 + reason explaining frequency domain anomalies or 0/10 if spectrum clean]",
+                "temporal_artifacts": "[score 0-10 + reason: assess timing irregularities, unnatural transitions]"
+            },
+            "6_limitations": "[Mention specific factors: audio quality, background noise, speaker accent, compression level, model confidence limits, or provide detailed assessment of reliability]",
+            "7_trust_score_breakdown": {
+                "voice_authenticity_score": "[score 0-10 + reason: assess overall voice naturalness and consistency]",
+                "linguistic_coherence": "[score 0-10 + reason: assess semantic consistency and context matching]",
+                "audio_quality": "[score 0-10 + reason: assess recording quality and artifact presence]",
+                "environmental_realism": "[score 0-10 + reason: assess background authenticity and spatial depth]",
+                "overall_authenticity": "[score 0-10 + comprehensive reason: integrate all factors into final authenticity score]"
+            },
+            "8_final_summary": "[Short 2-3 line conclusion: classification + strongest evidence + confidence level]"
+        }
+    else:
+        # IMAGE/VIDEO template (existing structure)
+        json_template = {
+            "1_final_verdict": {
+                "classification": "[Real|Fake|Likely Fake|Inconclusive - pick one based ONLY on evidence]",
+                "confidence_score": "[0-100, match detection result]",
+                "risk_level": "[Low|Medium|High]"
+            },
+            "2_ai_literacy_explanation": "[2-3 simple lines explaining why real/fake based ONLY on visible evidence. Understandable to non-technical users.]",
+            "3_key_detection_indicators": {
+                "facial_analysis": {
+                    "symmetry": "[score 0-10 + detailed reason; for static image provide assessment based on face geometry]",
+                    "skin_texture": "[score 0-10 + reason explaining pore pattern, smoothness, defects; or 0/10 if undetectable]",
+                    "eye_blink": "[0-10 score: for images 0/10 - Static image no motion; for video assess blink patterns]",
+                    "lip_sync": "[0-10 score: for images 0/10 - Static image no audio; for video assess lip-to-audio alignment]"
+                },
+                "lighting_shadows": {
+                    "light_consistency": "[score 0-10 + reason explaining light direction, shadows, highlights; or 0/10 if consistent]",
+                    "shadow_consistency": "[score 0-10 + reason explaining shadow coherence, density, direction; or 0/10 if perfect]"
+                },
+                "motion_temporal": {
+                    "frame_consistency": "[0-10 score: for images 0/10 - Static image no frames; for video assess inter-frame consistency]",
+                    "flicker_warping": "[0-10 score: for images 0/10 - Static media no temporal flicker; for video assess pixel warping]"
+                },
+                "background_environment": {
+                    "distortion": "[score 0-10 + reason explaining background focus, edge clarity, or 0/10 if sharp]",
+                    "depth_realism": "[score 0-10 + reason explaining depth cues, perspective consistency, or 0/10 if realistic]"
+                },
+                "compression_artifacts": {
+                    "gan_artifacts": "[score 0-10 + reason identifying checkerboard patterns, color banding, anomalies; or 0/10 if clean]",
+                    "noise_inconsistency": "[score 0-10 + reason explaining noise patterns, grain distribution; or 0/10 if consistent]",
+                    "edge_mismatch": "[score 0-10 + reason explaining edge blur, halos, misalignment; or 0/10 if edges sharp]"
+                }
+            },
+            "4_frame_analysis": "[For images: provide detailed visual breakdown identifying suspicious regions or 'No suspicious regions detected'; for video: identify frame ranges with anomalies]",
+            "5_technical_signals": {
+                "gan_probability": "[Provide % estimate with reasoning: 0-20% likely real, 20-50% uncertain, 50-80% suspicious, 80-100% likely GAN]",
+                "frequency_inconsistency": "[score 0-10 + reason explaining frequency domain anomalies or 0/10 if spectrum clean]",
+                "temporal_instability": "[0-10 score: for images 0/10 - No video motion data; for video assess flicker, jitter, instability]"
+            },
+            "6_limitations": "[Mention specific factors: low resolution, lighting conditions, facial occlusion, compression level, model confidence limits, or provide detailed assessment of reliability]",
+            "7_trust_score_breakdown": {
+                "visual_consistency": "[score 0-10 + reason: assess overall visual coherence and realism]",
+                "motion_consistency": "[0-10 score: for images 0/10 - Static no motion data; for video assess motion smoothness and continuity]",
+                "lighting_accuracy": "[score 0-10 + reason: assess light physics and shadow accuracy]",
+                "facial_realism": "[score 0-10 + reason: assess facial features authenticity and biological plausibility]",
+                "overall_authenticity": "[score 0-10 + comprehensive reason: integrate all factors into final authenticity score]"
+            },
+            "8_final_summary": "[Short 2-3 line conclusion: classification + strongest evidence + confidence level]"
+        }
+    
+    # Build the correct JSON template based on media type (CRITICAL FIX: was being overwritten)
+    if is_audio:
+        section_4_key = "4_audio_segment_analysis"
+        section_4_desc = "[For audio: provide detailed breakdown of suspicious segments, artifacts, or 'No suspicious segments detected']"
+        section_3 = {
+            "voice_authenticity": {
+                "voice_identity_consistency": "[score 0-10 + reason: assess voice shifts across segments, pitch consistency]",
+                "timbre_naturalness": "[score 0-10 + reason: assess metallic or synthetic tone, unnatural resonance]",
+                "harmonic_balance": "[score 0-10 + reason: assess missing natural harmonics, over-smoothed tones]"
+            },
+            "linguistic_intelligence": {
+                "context_awareness": "[score 0-10 + reason: assess if words match context naturally]",
+                "sentence_coherence": "[score 0-10 + reason: assess awkward phrasing or structure]",
+                "language_fluency": "[score 0-10 + reason: assess robotic or overly perfect speech patterns]"
+            },
+            "environmental_realism": {
+                "ambient_sound_presence": "[score 0-10 + reason: assess natural environment noise, room tone]",
+                "background_continuity": "[score 0-10 + reason: assess sudden changes in background sound]",
+                "spatial_audio_depth": "[score 0-10 + reason: assess flat or 2D sound space, stereo width]"
+            },
+            "temporal_consistency": {
+                "pause_distribution": "[score 0-10 + reason: assess unnatural pauses between words]",
+                "rhythm_consistency": "[score 0-10 + reason: assess irregular speaking rhythm, metronomic patterns]",
+                "speed_variation": "[score 0-10 + reason: assess sudden speed changes, unnatural pacing]"
+            },
+            "frequency_signal_analysis": {
+                "frequency_distribution": "[score 0-10 + reason: assess imbalanced frequency spectrum]",
+                "high_frequency_loss": "[score 0-10 + reason: assess missing crispness, AI smoothing effect]",
+                "low_frequency_noise": "[score 0-10 + reason: assess artificial bass artifacts, rumble]"
+            },
+            "ai_specific_artifacts": {
+                "voice_cloning_traces": "[score 0-10 + reason: assess known cloning patterns, voice mimicry signatures]",
+                "gan_model_noise_signature": "[score 0-10 + reason: assess synthetic generation traces, model fingerprints]",
+                "over_clean_signal": "[score 0-10 + reason: assess too perfect audio, lack of real-world noise]"
+            }
+        }
+        section_5 = {
+            "synthetic_probability": "[Provide % estimate with reasoning: 0-20% likely real, 20-50% uncertain, 50-80% suspicious, 80-100% likely AI-generated]",
+            "spectral_anomalies": "[score 0-10 + reason explaining frequency domain anomalies or 0/10 if spectrum clean]",
+            "temporal_artifacts": "[score 0-10 + reason: assess timing irregularities, unnatural transitions]"
+        }
+        section_7 = {
+            "voice_authenticity_score": "[score 0-10 + reason: assess overall voice naturalness and consistency]",
+            "linguistic_coherence": "[score 0-10 + reason: assess semantic consistency and context matching]",
+            "audio_quality": "[score 0-10 + reason: assess recording quality and artifact presence]",
+            "environmental_realism": "[score 0-10 + reason: assess background authenticity and spatial depth]",
+            "overall_authenticity": "[score 0-10 + comprehensive reason: integrate all factors into final authenticity score]"
+        }
+    else:
+        section_4_key = "4_frame_analysis"
+        section_4_desc = "[For images: provide detailed visual breakdown identifying suspicious regions or 'No suspicious regions detected'; for video: identify frame ranges with anomalies]"
+        section_3 = {
             "facial_analysis": {
                 "symmetry": "[score 0-10 + detailed reason; for static image provide assessment based on face geometry]",
                 "skin_texture": "[score 0-10 + reason explaining pore pattern, smoothness, defects; or 0/10 if undetectable]",
@@ -216,23 +351,51 @@ Return this JSON structure exactly:"""
                 "noise_inconsistency": "[score 0-10 + reason explaining noise patterns, grain distribution; or 0/10 if consistent]",
                 "edge_mismatch": "[score 0-10 + reason explaining edge blur, halos, misalignment; or 0/10 if edges sharp]"
             }
-        },
-"4_frame_analysis": "[For images: provide detailed visual breakdown identifying suspicious regions or 'No suspicious regions detected'; for video: identify frame ranges with anomalies]",
-        "5_technical_signals": {
+        }
+        section_5 = {
             "gan_probability": "[Provide % estimate with reasoning: 0-20% likely real, 20-50% uncertain, 50-80% suspicious, 80-100% likely GAN]",
             "frequency_inconsistency": "[score 0-10 + reason explaining frequency domain anomalies or 0/10 if spectrum clean]",
             "temporal_instability": "[0-10 score: for images 0/10 - No video motion data; for video assess flicker, jitter, instability]"
-        },
-        "6_limitations": "[Mention specific factors: low resolution, lighting conditions, facial occlusion, compression level, model confidence limits, or provide detailed assessment of reliability]",
-        "7_trust_score_breakdown": {
+        }
+        section_7 = {
             "visual_consistency": "[score 0-10 + reason: assess overall visual coherence and realism]",
             "motion_consistency": "[0-10 score: for images 0/10 - Static no motion data; for video assess motion smoothness and continuity]",
             "lighting_accuracy": "[score 0-10 + reason: assess light physics and shadow accuracy]",
             "facial_realism": "[score 0-10 + reason: assess facial features authenticity and biological plausibility]",
             "overall_authenticity": "[score 0-10 + comprehensive reason: integrate all factors into final authenticity score]"
+        }
+
+    json_template = {
+        "1_final_verdict": {
+            "classification": "[Real|Fake|Likely Fake|Inconclusive - pick one based ONLY on evidence]",
+            "confidence_score": "[0-100, match detection result]",
+            "risk_level": "[Low|Medium|High]"
         },
+        "2_ai_literacy_explanation": "[2-3 simple lines explaining why real/fake based ONLY on visible evidence. Understandable to non-technical users.]",
+        "3_key_detection_indicators": section_3,
+        section_4_key: section_4_desc,
+        "5_technical_signals": section_5,
+        "6_limitations": "[Mention specific factors: low resolution, lighting conditions, facial occlusion, compression level, model confidence limits, or provide detailed assessment of reliability]",
+        "7_trust_score_breakdown": section_7,
         "8_final_summary": "[Short 2-3 line conclusion: classification + strongest evidence + confidence level]"
     }
+
+    prompt = f"""You are analyzing a {media_type} for AI-generated or deepfake content.
+
+DETECTION INPUT:
+- Content Type: {media_type.upper()}
+- Detection Result: {detection_result}
+- Confidence Score: {confidence:.1%}
+- Technical Features Detected: {json.dumps(technical_features)}
+
+OUTPUT INSTRUCTIONS:
+Return ONLY valid JSON with these EXACT 8 sections. Use numeric scores 0-10 only where evidence supports. Mark unavailable sections as "N/A".
+
+For VIDEO: Include temporal/motion analysis (sections 4, 5 temporal parts).
+For AUDIO: Use the audio-specific parameters in section 3 with voice_authenticity, linguistic_intelligence, environmental_realism, temporal_consistency, frequency_signal_analysis, and ai_specific_artifacts. Use "4_audio_segment_analysis" instead of "4_frame_analysis".
+For TEXT/IMAGE: Mark motion/frame analysis as N/A.
+
+Return this JSON structure exactly:"""
 
     prompt += "\n\n" + json.dumps(json_template, indent=2)
     prompt += """
@@ -270,54 +433,114 @@ RESPONSE RULES:
         
         # If JSON parsing failed, return graceful fallback
         print(f"⚠️ LLM response not JSON-parsable, using fallback")
-        fallback = {
-            "1_final_verdict": {
-                "classification": detection_result.upper() if detection_result else "Inconclusive",
-                "confidence_score": int(confidence * 100) if confidence else 0,
-                "risk_level": "High" if "fake" in str(detection_result).lower() else "Low"
-            },
-            "2_ai_literacy_explanation": f"Model detected {detection_result} with {confidence:.1%} confidence. Detailed analysis: image analyzed for visual consistency and compression artifacts.",
-            "3_key_detection_indicators": {
-                "facial_analysis": {
-                    "symmetry": "5/10 - Unable to verify facial geometry without LLM analysis",
-                    "skin_texture": "5/10 - Skin surface analysis inconclusive",
-                    "eye_blink": "0/10 - Static image, no motion data available",
-                    "lip_sync": "0/10 - Static image, no temporal audio data"
+        
+        # Audio-specific fallback
+        if is_audio:
+            fallback = {
+                "1_final_verdict": {
+                    "classification": detection_result.upper() if detection_result else "Inconclusive",
+                    "confidence_score": int(confidence * 100) if confidence else 0,
+                    "risk_level": "High" if "fake" in str(detection_result).lower() else "Low"
                 },
-                "lighting_shadows": {
-                    "light_consistency": "5/10 - Lighting patterns detected but detailed analysis unavailable",
-                    "shadow_consistency": "5/10 - Shadow coherence status unknown"
+                "2_ai_literacy_explanation": f"Model detected {detection_result} with {confidence:.1%} confidence. Detailed analysis: audio analyzed for voice consistency and synthesis artifacts.",
+                "3_key_detection_indicators": {
+                    "voice_authenticity": {
+                        "voice_identity_consistency": "5/10 - Unable to verify voice consistency without LLM analysis",
+                        "timbre_naturalness": "5/10 - Timbre analysis inconclusive",
+                        "harmonic_balance": "5/10 - Harmonic analysis unavailable"
+                    },
+                    "linguistic_intelligence": {
+                        "context_awareness": "5/10 - Context analysis unavailable",
+                        "sentence_coherence": "5/10 - Coherence assessment inconclusive",
+                        "language_fluency": "5/10 - Fluency analysis unavailable"
+                    },
+                    "environmental_realism": {
+                        "ambient_sound_presence": "5/10 - Ambient sound analysis unavailable",
+                        "background_continuity": "5/10 - Background continuity unclear",
+                        "spatial_audio_depth": "5/10 - Spatial depth assessment unavailable"
+                    },
+                    "temporal_consistency": {
+                        "pause_distribution": "5/10 - Pause analysis unavailable",
+                        "rhythm_consistency": "5/10 - Rhythm assessment inconclusive",
+                        "speed_variation": "5/10 - Speed variation analysis unavailable"
+                    },
+                    "frequency_signal_analysis": {
+                        "frequency_distribution": "5/10 - Frequency distribution analysis unavailable",
+                        "high_frequency_loss": "5/10 - High-frequency analysis inconclusive",
+                        "low_frequency_noise": "5/10 - Low-frequency analysis unavailable"
+                    },
+                    "ai_specific_artifacts": {
+                        "voice_cloning_traces": "5/10 - Cloning detection inconclusive",
+                        "gan_model_noise_signature": "5/10 - Model signature analysis unavailable",
+                        "over_clean_signal": "5/10 - Signal cleanliness assessment unavailable"
+                    }
                 },
-                "motion_temporal": {
-                    "frame_consistency": "0/10 - Static image, no temporal data",
-                    "flicker_warping": "0/10 - Static media, no frame transitions"
+                "4_audio_segment_analysis": f"Audio analysis complete. Model confidence: {confidence:.1%}. Detailed segment analysis unavailable.",
+                "5_technical_signals": {
+                    "synthetic_probability": f"{int(confidence * 100)}% - Based on model detection score",
+                    "spectral_anomalies": "5/10 - Spectral analysis unavailable",
+                    "temporal_artifacts": "5/10 - Temporal artifact analysis unavailable"
                 },
-                "background_environment": {
-                    "distortion": "5/10 - Background distortion level unknown",
-                    "depth_realism": "5/10 - Depth consistency unclear"
+                "6_limitations": "LLM response unavailable; analysis limited to model confidence score. Recommend retrying for full forensic report.",
+                "7_trust_score_breakdown": {
+                    "voice_authenticity_score": f"{int((1 - confidence) * 10)}/10 - Based on detection confidence",
+                    "linguistic_coherence": "5/10 - Linguistic analysis limited",
+                    "audio_quality": "5/10 - Quality assessment limited",
+                    "environmental_realism": "5/10 - Environmental analysis limited",
+                    "overall_authenticity": f"{int((1 - confidence) * 10)}/10 - Model-based estimate"
                 },
-                "compression_artifacts": {
-                    "gan_artifacts": "5/10 - GAN artifacts detection inconclusive",
-                    "noise_inconsistency": "5/10 - Noise pattern analysis incomplete",
-                    "edge_mismatch": "5/10 - Edge quality assessment unavailable"
-                }
-            },
-            "4_frame_analysis": "Static image - no frame-by-frame analysis available. Model confidence: " + str(confidence),
-            "5_technical_signals": {
-                "gan_probability": f"{int(confidence * 100)}% - Based on model detection score",
-                "frequency_inconsistency": "5/10 - Frequency domain analysis unavailable",
-                "temporal_instability": "0/10 - Static media, no temporal instability data"
-            },
-            "6_limitations": "LLM response unavailable; analysis limited to model confidence score. Recommend retrying for full forensic report.",
-            "7_trust_score_breakdown": {
-                "visual_consistency": f"{int((1 - confidence) * 10)}/10 - Based on detection confidence",
-                "motion_consistency": "0/10 - Static image, no motion tracking",
-                "lighting_accuracy": "5/10 - Lighting assessment limited",
-                "facial_realism": "5/10 - Biometric assessment inconclusive",
-                "overall_authenticity": f"{int((1 - confidence) * 10)}/10 - Model-based estimate"
-            },
-            "8_final_summary": f"Technical detection: {detection_result}. Confidence: {confidence:.1%}. Detailed LLM analysis temporarily unavailable. Please try again or contact support."
-        }
+                "8_final_summary": f"Technical detection: {detection_result}. Confidence: {confidence:.1%}. Detailed LLM analysis temporarily unavailable. Please try again or contact support."
+            }
+        else:
+            # Image/Video fallback (existing)
+            fallback = {
+                "1_final_verdict": {
+                    "classification": detection_result.upper() if detection_result else "Inconclusive",
+                    "confidence_score": int(confidence * 100) if confidence else 0,
+                    "risk_level": "High" if "fake" in str(detection_result).lower() else "Low"
+                },
+                "2_ai_literacy_explanation": f"Model detected {detection_result} with {confidence:.1%} confidence. Detailed analysis: image analyzed for visual consistency and compression artifacts.",
+                "3_key_detection_indicators": {
+                    "facial_analysis": {
+                        "symmetry": "5/10 - Unable to verify facial geometry without LLM analysis",
+                        "skin_texture": "5/10 - Skin surface analysis inconclusive",
+                        "eye_blink": "0/10 - Static image, no motion data available",
+                        "lip_sync": "0/10 - Static image, no temporal audio data"
+                    },
+                    "lighting_shadows": {
+                        "light_consistency": "5/10 - Lighting patterns detected but detailed analysis unavailable",
+                        "shadow_consistency": "5/10 - Shadow coherence status unknown"
+                    },
+                    "motion_temporal": {
+                        "frame_consistency": "0/10 - Static image, no temporal data",
+                        "flicker_warping": "0/10 - Static media, no frame transitions"
+                    },
+                    "background_environment": {
+                        "distortion": "5/10 - Background distortion level unknown",
+                        "depth_realism": "5/10 - Depth consistency unclear"
+                    },
+                    "compression_artifacts": {
+                        "gan_artifacts": "5/10 - GAN artifacts detection inconclusive",
+                        "noise_inconsistency": "5/10 - Noise pattern analysis incomplete",
+                        "edge_mismatch": "5/10 - Edge quality assessment unavailable"
+                    }
+                },
+                "4_frame_analysis": "Static image - no frame-by-frame analysis available. Model confidence: " + str(confidence),
+                "5_technical_signals": {
+                    "gan_probability": f"{int(confidence * 100)}% - Based on model detection score",
+                    "frequency_inconsistency": "5/10 - Frequency domain analysis unavailable",
+                    "temporal_instability": "0/10 - Static media, no temporal instability data"
+                },
+                "6_limitations": "LLM response unavailable; analysis limited to model confidence score. Recommend retrying for full forensic report.",
+                "7_trust_score_breakdown": {
+                    "visual_consistency": f"{int((1 - confidence) * 10)}/10 - Based on detection confidence",
+                    "motion_consistency": "0/10 - Static image, no motion tracking",
+                    "lighting_accuracy": "5/10 - Lighting assessment limited",
+                    "facial_realism": "5/10 - Biometric assessment inconclusive",
+                    "overall_authenticity": f"{int((1 - confidence) * 10)}/10 - Model-based estimate"
+                },
+                "8_final_summary": f"Technical detection: {detection_result}. Confidence: {confidence:.1%}. Detailed LLM analysis temporarily unavailable. Please try again or contact support."
+            }
         return fallback
 
     except AuthenticationError as e:
